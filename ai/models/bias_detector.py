@@ -39,7 +39,7 @@ def detect_score_outliers(scores_df: pd.DataFrame, threshold: float = 2.0) -> li
                 
             for idx, row in scores_df[scores_df[field] == name].iterrows():
                 z_val = (row['final_score'] - mean) / std
-                if abs(z_val) > threshold:
+                if abs(z_val) >= threshold:
                     alerts.append({
                         "score_id": row['score_id'],
                         "bias_type": field,
