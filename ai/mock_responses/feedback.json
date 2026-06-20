@@ -1,0 +1,16 @@
+{
+  "feedbacks": [
+    {
+      "title": "SmartRecycle",
+      "feedback": "SmartRecycle shows impressive implementation of computer vision to solve waste sorting. The high feasibility score reflects a very practical and deployable business model. To improve further, consider adding offline support to the mobile app for regions with low connectivity."
+    },
+    {
+      "title": "FinSight",
+      "feedback": "FinSight displays deep technical complexity in its financial predictive models. The presentation was crisp, explaining complex technical concepts clearly. For future iterations, focusing on refining the latency of real-time pipeline runs will improve usability."
+    },
+    {
+      "title": "HealthConnect",
+      "feedback": "HealthConnect addresses an essential gap in patient care coordination. The user interface layout is highly intuitive, promoting easy adoption by clinic staff. We recommend strengthening the database encryption controls to fully meet HIPAA regulatory compliance."
+    }
+  ]
+}

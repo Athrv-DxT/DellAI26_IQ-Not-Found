@@ -1,0 +1,31 @@
+# Core Backend
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0
+sqlalchemy>=2.0.28
+psycopg2-binary>=2.9.9
+pydantic[email]>=2.6.4
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+bcrypt>=4.1.2
+python-multipart>=0.0.9
+
+# Asynchronous queue & Cache
+celery>=5.3.6
+redis>=5.0.3
+websockets>=12.0
+python-socketio>=5.11.1
+
+# AI/ML
+sentence-transformers>=2.5.1
+spacy>=3.7.4
+scikit-learn>=1.4.1.post1
+scipy>=1.12.0
+numpy>=1.26.4
+pandas>=2.2.1
+chromadb>=0.4.24
+google-generativeai>=0.4.1
+
+# Development and Testing
+pytest>=8.1.1
+httpx>=0.27.0
+pytest-asyncio>=0.23.5
