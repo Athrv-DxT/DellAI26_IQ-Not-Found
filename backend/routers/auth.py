@@ -56,9 +56,33 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     }
 
 @router.post("/refresh", response_model=schemas.TokenResponse)
-def refresh():
-    # TODO: Add JWT refresh validation logic
-    raise HTTPException(status_code=501, detail="Refresh endpoint not implemented")
+def refresh(payload_data: schemas.RefreshTokenRequest, db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate refresh token",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = auth.jwt.decode(payload_data.refresh_token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
+        user_id_str: str = payload.get("sub")
+        is_refresh: bool = payload.get("refresh", False)
+        if user_id_str is None or not is_refresh:
+            raise credentials_exception
+        user_id = auth.UUID(user_id_str)
+    except (auth.JWTError, ValueError):
+        raise credentials_exception
+
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user is None:
+        raise credentials_exception
+
+    access_token = auth.create_access_token(data={"sub": str(user.id)})
+    refresh_token = auth.create_refresh_token(data={"sub": str(user.id)})
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
 
 @router.get("/me", response_model=schemas.UserResponse)
 def read_users_me(current_user: models.User = Depends(auth.get_current_user)):
