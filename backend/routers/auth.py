@@ -6,8 +6,8 @@ from datetime import timedelta
 from ai.tasks.duplicate import detect_duplicate_registration
 from ai.tasks.skills import extract_skills_from_bio
 
-from ..database import get_db
-from .. import models, schemas, auth
+from backend.database import get_db
+from backend import models, schemas, auth
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -23,9 +23,9 @@ def register(user_data: schemas.UserRegister, db: Session = Depends(get_db)):
     
     hashed_pwd = auth.get_password_hash(user_data.password)
     new_user = models.User(
-        name=user_data.name,
+        full_name=user_data.name,
         email=user_data.email,
-        password=hashed_pwd,
+        hashed_password=hashed_pwd,
         role=user_data.role,
         skills=user_data.skills or [],
         gender=user_data.gender,
@@ -74,7 +74,10 @@ def refresh(payload_data: schemas.RefreshTokenRequest, db: Session = Depends(get
         is_refresh: bool = payload.get("refresh", False)
         if user_id_str is None or not is_refresh:
             raise credentials_exception
-        user_id = auth.UUID(user_id_str)
+        try:
+            user_id = auth.UUID(user_id_str)
+        except ValueError:
+            user_id = int(user_id_str)
     except (auth.JWTError, ValueError):
         raise credentials_exception
 

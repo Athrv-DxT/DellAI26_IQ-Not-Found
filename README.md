@@ -1,126 +1,119 @@
-# AI-Enabled Hackathon Management Dashboard
-### Dell Hackathon 2026 (Team: S, A, AT, RV, V)
+# HackOS — Dell Future Minds AI Hackathon 2026
 
-Welcome to the **AI-Enabled Hackathon Management Dashboard** repository. This platform is a unified, production-grade solution designed to automate the entire lifecycle of running a hackathon—from participant registration, duplicate detection, and automated skill profiling to AI-assisted reviewer matching, real-time bias detection, and ranking/feedback generation.
+> **Team:** IQ-Not-Found | **Track:** AI & Intelligent Agents | **PS1 Submission**
 
----
+A state-driven agentic operating system that automates the entire hackathon lifecycle — from registration deduplication to winner certificate generation — using autonomous AI agents.
 
-## 🚀 Key Features
-
-1. **AI Registration Intelligence**:
-   - Asynchronous duplicate detection utilizing `sentence-transformers` (`all-MiniLM-L6-v2`) via semantic vector similarities in ChromaDB.
-   - Skill extraction and profile tagging from free-form user bios using spaCy Natural Language Processing (`en_core_web_sm`).
-2. **AI Reviewer Assignment**:
-   - Optimal global reviewer-to-submission assignment using the Hungarian optimization algorithm via `scipy.optimize.linear_sum_assignment`.
-   - Incorporates expertise similarity, current reviewer load balance, conflict of interest checks, and demographic diversity boosts.
-3. **AI Bias Detection**:
-   - Real-time z-score monitoring of incoming evaluation scores to detect gender, institutional, or geographic bias.
-   - Live WebSocket alerts pushed instantly to the organizer dashboard.
-4. **Automated Feedback & Results Generation**:
-   - Rubric-weighted score aggregation and tie-breaking metrics.
-   - Personalized constructively-critical feedback generation using the Google Gemini 1.5 Flash API (with offline template fallbacks).
-5. **Analytics Dashboard**:
-   - Interactive charting for registrations, track distributions, judging progress, and bias alerts breakdown.
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Ravikant-sys/DellAI26_IQ-Not-Found/tree/submission/hackos-agentic-platform-v2)
 
 ---
 
-## 🏗️ System Architecture
+## 🏗️ Architecture
 
-```mermaid
-graph TD
-    %% Frontend Group
-    subgraph Frontend [Next.js 14+ / Tailwind CSS]
-        UI[Organizer & Participant UI]
-        WS_Client[Socket.io / WS Client]
-    end
-
-    %% Backend Group
-    subgraph Backend [FastAPI API Gateway]
-        Gateway[FastAPI Endpoints]
-        WS_Mgr[WebSocket Manager]
-    end
-
-    %% Queue
-    RedisBroker[(Redis Message Broker)]
-
-    %% Workers Group
-    subgraph Workers [Celery Asynchronous Workers]
-        DupCheck[Duplicate Detector Task]
-        SkillExt[Skill Extractor Task]
-        AssignMatch[Reviewer Matcher Task]
-        BiasDet[Bias Detector Task]
-        ResGen[Result Feedback Generator]
-    end
-
-    %% Data Store
-    subgraph Data [Data Layer]
-        Postgres[(PostgreSQL 16 DB)]
-        Chroma[(ChromaDB Vector Store)]
-        Gemini[Gemini Flash API]
-    end
-
-    UI <-->|HTTP REST| Gateway
-    WS_Client <-->|WebSockets| WS_Mgr
-    Gateway -->|Enqueue Jobs| RedisBroker
-    RedisBroker --> Workers
-    Workers <--> Postgres
-    Workers <--> Chroma
-    Workers -.->|Feedback| Gemini
-    Workers -->|Publish Alerts| RedisBroker
-    RedisBroker --> WS_Mgr
+```
+hackathon-dashboard/
+├── frontend/          # Next.js 14 + Tailwind CSS
+│   ├── app/
+│   │   ├── page.tsx           # Landing page
+│   │   ├── register/          # Participant registration
+│   │   ├── dashboard/         # Organizer control center
+│   │   ├── submit/            # Project submission
+│   │   ├── review/            # Judge scorecard
+│   │   ├── results/           # Live leaderboard
+│   │   ├── bias/              # Bias alert panel
+│   │   └── analytics/         # Platform analytics
+│   └── components/
+│       ├── BiasPanel.tsx      # Real-time bias alerts
+│       ├── Leaderboard.tsx    # Ranked display
+│       └── AnalyticsCharts.tsx
+└── backend/           # FastAPI + SQLModel + PostgreSQL
+    └── app/
+        ├── main.py            # All API routes
+        ├── models.py          # SQLModel schemas
+        ├── database.py        # DB connection
+        └── agents/            # AI agent workers
 ```
 
 ---
 
-## 📂 Repository Structure
+## ⚙️ Core Algorithms
 
-The project is structured as a clean, decoupled monorepo:
-
-* **`/frontend`**: Next.js 14+ single-page application utilizing TypeScript, Tailwind CSS, shadcn/ui components, Zustand for state management, and Recharts.
-* **`/backend`**: FastAPI application hosting the core REST API and WebSocket gateway.
-* **`/ai`**: Dedicated ML/NLP models, vector clients, and Celery asynchronous tasks for executing computationally heavy tasks off the HTTP thread.
-* **`/data`**: Seeding scripts and SQL definitions containing high-fidelity synthetic demo data.
-* **`/tests`**: Comprehensive unit and integration test suite targeting the FastAPI endpoints, ML pipelines, and Celery tasks.
+| Algorithm | Purpose |
+|-----------|---------|
+| **DBSCAN** (cosine similarity) | Vector-based plagiarism detection on project embeddings |
+| **Hungarian Algorithm** (SciPy) | Optimal bipartite judge-to-project assignment |
+| **Z-score Normalisation** | Per-judge bias calibration — removes lenient/strict outlier effect |
+| **spaCy NER** | Automatic skill extraction from participant bios |
+| **Blockchain Ledger** | SHA-256 chained audit log for tamper-proof scoring |
 
 ---
 
-## 🛠️ Getting Started (Local Setup)
+## 🚀 Quick Start
 
-### Prerequisites
-- Python 3.11+
-- Node.js 18+
-- PostgreSQL 16
-- Redis 7
+### Backend (FastAPI)
+```bash
+cd backend
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
 
-### Installation
+### Frontend (Next.js)
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-1. **Clone and Configure**:
-   ```bash
-   cp .env.example .env
-   # Fill out database URLs, secrets, and optional GEMINI_API_KEY
-   ```
+### Seed Demo Data
+```bash
+curl -X POST http://localhost:8000/api/seed
+```
 
-2. **Database Initialization**:
-   Ensure PostgreSQL is running and create the database:
-   ```sql
-   CREATE DATABASE hackathon_db;
-   ```
+Open **http://localhost:3000** 🎉
 
-3. **Install Backend & Worker Dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   # Download the spaCy English model
-   python -m spacy download en_core_web_sm
-   ```
+---
 
-4. **Install Frontend Dependencies**:
-   ```bash
-   cd frontend
-   npm install
-   ```
+## 🌐 Pages
 
-5. **Start Services (via Setup Script or Manually)**:
-   - **PostgreSQL / Redis**: Ensure their daemons are running.
-   - **Celery Worker**: `celery -A backend.celery_app worker --loglevel=info`
-   - **API Server**: `uvicorn backend.main:app --reload --port 8000`
-   - **Frontend Dev Server**: `npm run dev` (running at `http://localhost:3000`)
+| Route | Description |
+|-------|-------------|
+| `/` | Landing page |
+| `/register` | Multi-step participant registration |
+| `/dashboard` | Organizer control center (tabbed) |
+| `/submit` | Project submission with DBSCAN check |
+| `/review` | Judge scorecard with Z-score calibration |
+| `/results` | Animated leaderboard + winner certificate |
+| `/bias` | Real-time WebSocket bias alert panel |
+| `/analytics` | Registration timeline + track distribution |
+
+---
+
+## 🔌 Key API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/register` | Register participant (triggers DBSCAN async) |
+| `POST` | `/api/submit` | Submit project (triggers vector similarity check) |
+| `POST` | `/api/review/assign` | Hungarian algorithm judge assignment |
+| `POST` | `/api/review/score` | Submit scores (triggers Z-score calibration) |
+| `POST` | `/api/results/generate` | Generate final rankings |
+| `GET`  | `/api/leaderboard` | Z-score normalised rankings |
+| `GET`  | `/api/bias-alerts` | Active bias anomaly flags |
+| `GET`  | `/api/analytics/winner` | Winner certificate with verification hash |
+| `GET`  | `/api/audit-logs/verify` | Blockchain ledger integrity check |
+| `WS`   | `/ws` | Real-time agent event stream |
+
+---
+
+## 🧰 Tech Stack
+
+**Backend:** FastAPI · SQLModel · PostgreSQL · spaCy · SciPy · LangGraph · ChromaDB · WebSockets
+
+**Frontend:** Next.js 14 · Tailwind CSS · Inter + Outfit fonts · Zustand · Recharts
+
+---
+
+## 👥 Team
+
+**IQ-Not-Found** — Dell Future Minds AI Hackathon 2026

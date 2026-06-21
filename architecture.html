@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Architecture - State-Driven Agentic OS</title>
+    <!-- Google Fonts for premium look -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Mermaid.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.2.4/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #080c14;
+            color: #f8fafc;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            background-color: #0e1626;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid #1e293b;
+        }
+        h1 {
+            font-size: 2rem;
+            margin-top: 0;
+            color: #38bdf8;
+            font-weight: 700;
+            border-bottom: 1px solid #1e293b;
+            padding-bottom: 15px;
+            text-align: center;
+        }
+        p.subtitle {
+            color: #94a3b8;
+            text-align: center;
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+        }
+        .mermaid {
+            background-color: #05080f;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #1e293b;
+            display: flex;
+            justify-content: center;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+    </style>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            securityLevel: 'loose',
+            themeVariables: {
+                background: '#05080f',
+                primaryColor: '#0e1626',
+                primaryTextColor: '#f8fafc',
+                lineColor: '#38bdf8',
+                secondaryColor: '#1e293b',
+                tertiaryColor: '#05080f'
+            }
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>State-Driven Agentic OS: System Architecture</h1>
+        <p class="subtitle">Unified Next.js BFF & FastAPI Backend Architecture with LangGraph</p>
+        
+        <div class="mermaid">
+        graph TB
+            subgraph ClientLayer ["Client Layer (UI)"]
+                UI["Next.js Console / Dashboard"]
+                SSE_Client["SSE Log Stream Consumer"]
+            end
+
+            subgraph BackendCore ["FastAPI Backend & AI Core"]
+                API_Gateway["FastAPI API Router"]
+                Transactional_Svc["Transactional CRUD Manager"]
+                SSE_Broadcaster["SSE Broadcaster Service"]
+            end
+
+            subgraph AgentEngine ["LangGraph Agent Engine"]
+                Workflow["StateGraph Workflow Manager"]
+                DBSCANAgent["DBSCAN Plagiarism Check Node"]
+                MatcherAgent["Hungarian Judge Match Node"]
+                ZScoreNormalizer["Z-Score Normalization Engine"]
+            end
+
+            subgraph DataStore ["PostgreSQL Database (pgvector)"]
+                UsersTeams["Users & Teams Tables"]
+                Submissions["Project Submissions Table"]
+                JudgeProfiles["Judge Profiles Table"]
+                Scores["Scores & Normalizations Table"]
+            end
+
+            %% Flows
+            UI -->|1. REST Mutations| API_Gateway
+            SSE_Broadcaster -.->|2. Real-time Log Stream| SSE_Client
+
+            API_Gateway --> Transactional_Svc
+            Transactional_Svc -->|3. ACID Writes| UsersTeams
+            Transactional_Svc -->|3. ACID Writes| Submissions
+
+            API_Gateway -->|4. Trigger Background Workflow| Workflow
+            Workflow --> DBSCANAgent
+            Workflow --> MatcherAgent
+            API_Gateway -->|5. Trigger Score Evaluation| ZScoreNormalizer
+
+            DBSCANAgent -->|Query Vectors| Submissions
+            DBSCANAgent -->|Write Flagged States| Submissions
+            MatcherAgent -->|Match Experts| JudgeProfiles
+            MatcherAgent -->|Write Assigned States| Submissions
+            ZScoreNormalizer -->|Calculate Normalizations| Scores
+
+            Workflow -.->|6. Broadcast Log Outputs| SSE_Broadcaster
+        </div>
+    </div>
+    <div class="footer">
+        State-Driven Agentic Operating System &copy; 2026
+    </div>
+</body>
+</html>
