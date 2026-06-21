@@ -77,6 +77,7 @@ const accentMap: Record<string, { dot: string; text: string; bg: string; border:
 const techStack = ["FastAPI", "Next.js 14", "SQLModel", "ChromaDB", "LangGraph", "SciPy", "spaCy", "WebSockets", "PostgreSQL"];
 
 export default function Home() {
+  return (
     <div className="min-h-screen" style={{ background: "var(--bg)", color: "var(--text)" }}>
       {/* ── Nav ── */}
       <nav className="relative z-10 flex items-center justify-between px-6 py-4 max-w-6xl mx-auto border-b border-gray-200" style={{ background: "#ffffff" }}>
