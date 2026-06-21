@@ -15,45 +15,45 @@ def submit_project(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.require_participant)
 ):
-    # Verify event exists
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-        
-    # Find user's team for this event
-    # Check teams where user ID is in team.members array
-    # In Postgres models: members is ARRAY(UUID)
+
+    if event.status not in ("hacking", "judging"):
+        raise HTTPException(status_code=400, detail="Event is not accepting submissions at this time")
+
     team = db.query(models.Team).filter(
         models.Team.event_id == event_id,
         models.Team.members.any(current_user.id)
     ).first()
-    
     if not team:
         raise HTTPException(status_code=400, detail="User must belong to a team in this event to submit")
 
-    # Check if team already submitted
     existing_sub = db.query(models.Submission).filter(models.Submission.team_id == team.id).first()
     if existing_sub:
         raise HTTPException(status_code=400, detail="This team has already submitted a project")
+
+    github_url = str(submission_data.github_url) if submission_data.github_url else None
+    demo_url = str(submission_data.demo_url) if submission_data.demo_url else None
+    video_url = str(submission_data.video_url) if submission_data.video_url else None
 
     new_submission = models.Submission(
         team_id=team.id,
         event_id=event_id,
         title=submission_data.title,
         description=submission_data.description,
-        github_url=submission_data.github_url,
-        demo_url=submission_data.demo_url,
-        video_url=submission_data.video_url,
+        github_url=github_url,
+        demo_url=demo_url,
+        video_url=video_url,
         track=submission_data.track,
-        tags=submission_data.tags
+        tags=submission_data.tags or []
     )
     db.add(new_submission)
     db.commit()
     db.refresh(new_submission)
-    
-    # TODO: Enqueue async embedding generation & indexing task
-    
+
     return new_submission
+
 
 @router.get("/{event_id}", response_model=List[schemas.SubmissionResponse])
 def list_submissions(

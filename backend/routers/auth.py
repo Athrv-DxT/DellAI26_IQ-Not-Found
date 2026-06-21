@@ -1,7 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
+from ai.tasks.duplicate import detect_duplicate_registration
+from ai.tasks.skills import extract_skills_from_bio
 
 from ..database import get_db
 from .. import models, schemas, auth
@@ -33,8 +36,11 @@ def register(user_data: schemas.UserRegister, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
 
-    # TODO: Enqueue asynchronous skill extraction & duplicate detection here
-    
+    if user_data.bio:
+        extract_skills_from_bio.delay(str(new_user.id), user_data.bio)
+
+    detect_duplicate_registration.delay(str(new_user.id))
+
     return new_user
 
 @router.post("/login", response_model=schemas.TokenResponse)
