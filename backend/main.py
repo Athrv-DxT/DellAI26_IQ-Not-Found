@@ -17,7 +17,7 @@ from pydantic import BaseModel
 
 from backend.config import settings
 from backend.database import init_db, get_session
-from backend.models import User, Team, ProjectSubmission, JudgeProfile, RawScore, AuditLog, EvaluationCriteria, SystemConfig, reset_blockchain_cache
+from backend.models import User, Team, ProjectSubmission, JudgeProfile, RawScore, AuditLog, EvaluationCriteria, SystemConfig, reset_blockchain_cache, Intervention
 from backend.agents.sybil import generate_text_embedding
 from backend.agents.workflow import agent_workflow, broadcaster
 from backend.agents.score_eval import normalize_judge_scores
@@ -64,6 +64,7 @@ init_db()
 @app.on_event("startup")
 def startup_event():
     broadcaster.set_loop(asyncio.get_running_loop())
+    asyncio.create_task(check_thresholds_loop())
 
 # Request schemas
 class UserCreate(BaseModel):
@@ -1558,4 +1559,194 @@ def get_results_list(session: Session = Depends(get_session)):
             "feedback": r.feedback
         })
     return out
+
+# =====================================================================
+# Adaptive Intervention Engine (Feature 7)
+# =====================================================================
+
+def check_thresholds_internal(session: Session):
+    # 1. Team Inactivity (registered >= 4 hours ago, no submission)
+    teams = session.exec(select(Team)).all()
+    for team in teams:
+        sub = session.exec(select(ProjectSubmission).where(ProjectSubmission.team_id == team.id)).first()
+        if not sub:
+            age_hours = (datetime.datetime.utcnow() - team.created_at).total_seconds() / 3600.0
+            if age_hours >= 4.0:
+                desc = f"Team '{team.name}' has been registered for more than 4 hours but has not submitted a project."
+                exists = session.exec(
+                    select(Intervention).where(
+                        Intervention.type == "team_inactivity",
+                        Intervention.status == "PENDING",
+                        Intervention.description == desc
+                    )
+                ).first()
+                if not exists:
+                    intervention = Intervention(
+                        type="team_inactivity",
+                        severity="WARNING",
+                        description=desc,
+                        recommended_action=f"Send a personalized reminder email to Team '{team.name}' and recommend mentor allocation.",
+                        expected_impact=12.0,
+                        status="PENDING"
+                    )
+                    session.add(intervention)
+
+    # 2. Reviewer Overload (Judge utilization >= 90%)
+    judges = session.exec(select(JudgeProfile)).all()
+    for judge in judges:
+        if judge.max_projects > 0 and (judge.current_load / judge.max_projects) >= 0.90:
+            judge_user = session.get(User, judge.user_id)
+            name = judge_user.full_name if judge_user else f"Judge {judge.id}"
+            desc = f"Reviewer '{name}' (ID {judge.id}) utilization is at {judge.current_load}/{judge.max_projects} capacity."
+            exists = session.exec(
+                select(Intervention).where(
+                    Intervention.type == "reviewer_overload",
+                    Intervention.status == "PENDING",
+                    Intervention.description == desc
+                )
+            ).first()
+            if not exists:
+                intervention = Intervention(
+                    type="reviewer_overload",
+                    severity="CRITICAL",
+                    description=desc,
+                    recommended_action="Reassign pending projects and redistribute reviewer workload to ensure fair feedback times.",
+                    expected_impact=8.0,
+                    status="PENDING"
+                )
+                session.add(intervention)
+
+    # 3. Evaluation Bias (Unresolved BiasAlert)
+    alerts = session.exec(select(BiasAlert).where(BiasAlert.resolved == False)).all()
+    for alert in alerts:
+        desc = f"Z-score warning: Reviewer ID {alert.reviewer_id} has a score z-score of {alert.z_score:.2f} on Submission ID {alert.submission_id}."
+        exists = session.exec(
+            select(Intervention).where(
+                Intervention.type == "evaluation_bias",
+                Intervention.status == "PENDING",
+                Intervention.description == desc
+            )
+        ).first()
+        if not exists:
+            intervention = Intervention(
+                type="evaluation_bias",
+                severity="CRITICAL",
+                description=desc,
+                recommended_action="Normalize evaluation score for this reviewer, or reassign submission to an independent judge.",
+                expected_impact=15.0,
+                status="PENDING"
+            )
+            session.add(intervention)
+
+    # 4. Submission Delay (>= 20% registered teams have no submission)
+    total_teams = len(teams)
+    if total_teams > 0:
+        total_subs = len(session.exec(select(ProjectSubmission)).all())
+        unsubmitted = total_teams - total_subs
+        percentage = (unsubmitted / total_teams) * 100.0
+        if percentage >= 20.0:
+            desc = f"Submission Delay: {percentage:.1f}% of registered teams ({unsubmitted}/{total_teams}) have not submitted their projects."
+            exists = session.exec(
+                select(Intervention).where(
+                    Intervention.type == "submission_delay",
+                    Intervention.status == "PENDING"
+                )
+            ).first()
+            if not exists:
+                intervention = Intervention(
+                    type="submission_delay",
+                    severity="WARNING",
+                    description=desc,
+                    recommended_action="Trigger deadline reminder broadcast to all pending teams and recommend a 1-hour checkpoint extension.",
+                    expected_impact=18.0,
+                    status="PENDING"
+                )
+                session.add(intervention)
+
+    try:
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        print(f"[Intervention Check Error] {e}")
+
+async def check_thresholds_loop():
+    await asyncio.sleep(5)
+    from backend.database import engine
+    while True:
+        try:
+            with Session(engine) as session:
+                check_thresholds_internal(session)
+        except Exception as e:
+            print(f"[Intervention Loop Error] {e}")
+        await asyncio.sleep(60)
+
+@celery_app.task
+def check_thresholds(event_id=None):
+    from backend.database import engine
+    with Session(engine) as session:
+        check_thresholds_internal(session)
+
+@app.get("/api/interventions")
+def list_interventions(session: Session = Depends(get_session)):
+    return session.exec(select(Intervention).where(Intervention.status == "PENDING")).all()
+
+@app.post("/api/interventions/apply/{id}")
+def apply_intervention(id: str, session: Session = Depends(get_session)):
+    import uuid
+    try:
+        uuid_val = uuid.UUID(id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid intervention UUID format")
+        
+    intervention = session.get(Intervention, uuid_val)
+    if not intervention:
+        raise HTTPException(status_code=404, detail="Intervention not found")
+        
+    intervention.status = "RESOLVED"
+    session.add(intervention)
+    
+    # Log audit entry
+    audit = AuditLog(
+        action="INTERVENTION_APPLIED",
+        details=f"Applied intervention {intervention.type}: {intervention.description}"
+    )
+    session.add(audit)
+    
+    try:
+        session.commit()
+        broadcaster.broadcast(
+            f"[Intervention Engine] SUCCESS: Applied correction for '{intervention.type}'. Health score impact: +{intervention.expected_impact}%",
+            "state_update"
+        )
+        return {"status": "SUCCESS", "message": "Intervention applied successfully."}
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=400, detail=f"Failed to apply intervention: {e}")
+
+@app.patch("/api/interventions/{id}/dismiss")
+def dismiss_intervention(id: str, session: Session = Depends(get_session)):
+    import uuid
+    try:
+        uuid_val = uuid.UUID(id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid intervention UUID format")
+        
+    intervention = session.get(Intervention, uuid_val)
+    if not intervention:
+        raise HTTPException(status_code=404, detail="Intervention not found")
+        
+    intervention.status = "DISMISSED"
+    session.add(intervention)
+    
+    try:
+        session.commit()
+        broadcaster.broadcast(
+            f"[Intervention Engine] Dismissed correction recommendation for '{intervention.type}'.",
+            "state_update"
+        )
+        return {"status": "SUCCESS", "message": "Intervention dismissed."}
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=400, detail=f"Failed to dismiss intervention: {e}")
+
 

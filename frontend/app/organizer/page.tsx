@@ -27,10 +27,13 @@ export default function OrganizerDashboard() {
     leaderboard, 
     logs, 
     biasAlerts, 
+    interventions,
     loading, 
     refresh, 
     resolveAlert, 
-    overrideState 
+    overrideState,
+    applyIntervention,
+    dismissIntervention
   } = useStore();
 
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -359,6 +362,75 @@ export default function OrganizerDashboard() {
                     </button>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Adaptive AI Recommended Actions Panel */}
+        <section className="glass-panel rounded-2xl p-6 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+            <div className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-sky-400 animate-pulse" />
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider">Adaptive AI Recommended Actions</h2>
+            </div>
+            <span className="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded font-bold uppercase tracking-wider font-mono">
+              Intervention Engine
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {!interventions || interventions.length === 0 ? (
+              <p className="text-slate-500 text-xs italic text-center py-6">No proactive interventions or corrections recommended at this time.</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {interventions.map((item) => {
+                  let borderClass = "border-sky-500/20 hover:border-sky-500/40";
+                  let bgBadge = "bg-sky-500/10 text-sky-400 border-sky-500/20";
+                  if (item.severity === "CRITICAL") {
+                    borderClass = "border-rose-500/20 hover:border-rose-500/40";
+                    bgBadge = "bg-rose-500/10 text-rose-400 border-rose-500/20";
+                  } else if (item.severity === "WARNING") {
+                    borderClass = "border-amber-500/20 hover:border-amber-500/40";
+                    bgBadge = "bg-amber-500/10 text-amber-400 border-amber-500/20";
+                  }
+
+                  return (
+                    <div 
+                      key={item.id} 
+                      className={`bg-[#05080f] p-4 rounded-xl border ${borderClass} transition flex flex-col justify-between gap-3 text-xs`}
+                    >
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${bgBadge}`}>
+                            {item.severity} &bull; {item.type.replace("_", " ")}
+                          </span>
+                          <span className="text-[#10b981] font-bold font-mono">+{item.expected_impact}% Impact</span>
+                        </div>
+                        <p className="text-slate-200 font-semibold leading-snug">{item.description}</p>
+                        <div className="bg-[#020408] p-2.5 rounded border border-white/[0.03] text-slate-400 leading-relaxed font-mono text-[10px]">
+                          <span className="text-[9px] text-[#38bdf8] font-bold uppercase not-italic block mb-1">Recommended Correction:</span>
+                          {item.recommended_action}
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2 w-full pt-1">
+                        <button
+                          onClick={() => applyIntervention(item.id)}
+                          className="flex-1 px-3 py-1.5 bg-sky-600 hover:bg-sky-500 active:scale-95 transition text-white font-bold rounded-lg text-[10px] uppercase tracking-wider"
+                        >
+                          Apply Action
+                        </button>
+                        <button
+                          onClick={() => dismissIntervention(item.id)}
+                          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 transition text-slate-300 font-semibold rounded-lg text-[10px]"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

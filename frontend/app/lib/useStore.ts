@@ -34,12 +34,25 @@ export interface BiasAlert {
   action: string;
 }
 
+export interface Intervention {
+  id: string;
+  event_id?: string;
+  type: string;
+  severity: string;
+  description: string;
+  recommended_action: string;
+  expected_impact: number;
+  status: string;
+  created_at: string;
+}
+
 class Store {
   private state = {
     submissions: [] as Submission[],
     leaderboard: [] as LeaderboardItem[],
     logs: [] as LogItem[],
     biasAlerts: [] as BiasAlert[],
+    interventions: [] as Intervention[],
     loading: true,
   };
 
@@ -60,14 +73,16 @@ class Store {
 
   async refresh() {
     try {
-      const [subs, lead, alerts] = await Promise.all([
+      const [subs, lead, alerts, interventions] = await Promise.all([
         apiFetch("/api/submissions"),
         apiFetch("/api/leaderboard"),
         apiFetch("/api/bias-alerts"),
+        apiFetch("/api/interventions"),
       ]);
       this.state.submissions = subs;
       this.state.leaderboard = lead;
       this.state.biasAlerts = alerts;
+      this.state.interventions = interventions;
     } catch (e) {
       console.error("Failed to load store data:", e);
     } finally {
@@ -117,6 +132,27 @@ class Store {
     await this.refresh();
     return res;
   }
+
+  async applyIntervention(id: string) {
+    try {
+      await apiFetch(`/api/interventions/apply/${id}`, { method: "POST" });
+      await this.refresh();
+    } catch (e) {
+      console.error("Failed to apply intervention:", e);
+      alert(`Error applying intervention: ${e}`);
+    }
+  }
+
+  async dismissIntervention(id: string) {
+    try {
+      await apiFetch(`/api/interventions/${id}/dismiss`, { method: "PATCH" });
+      await this.refresh();
+    } catch (e) {
+      console.error("Failed to dismiss intervention:", e);
+      alert(`Error dismissing intervention: ${e}`);
+    }
+  }
+
 }
 
 export const globalStore = new Store();
@@ -163,5 +199,7 @@ export function useStore() {
       globalStore.submitScore(judgeId, projectId, scores, rawScore),
     overrideState: (id: number, action: string) =>
       globalStore.overrideState(id, action),
+    applyIntervention: (id: string) => globalStore.applyIntervention(id),
+    dismissIntervention: (id: string) => globalStore.dismissIntervention(id),
   };
 }

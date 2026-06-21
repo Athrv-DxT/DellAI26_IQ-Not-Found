@@ -1,4 +1,5 @@
 import json
+import uuid
 from typing import List, Optional, Dict
 from datetime import datetime
 from sqlmodel import SQLModel, Field, Column, Relationship
@@ -179,6 +180,18 @@ class SystemConfig(SQLModel, table=True):
     __tablename__ = "system_config"
     key: str = Field(primary_key=True)
     value: str
+
+class Intervention(SQLModel, table=True):
+    __tablename__ = "interventions"
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    event_id: Optional[uuid.UUID] = None
+    type: str = Field(sa_column=Column(String(50)))
+    severity: str = Field(sa_column=Column(String(20)))
+    description: str = Field(sa_column=Column(Text))
+    recommended_action: str = Field(sa_column=Column(Text))
+    expected_impact: float
+    status: str = Field(default="PENDING", sa_column=Column(String(20)))
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class AuditLog(SQLModel, table=True):
     __tablename__ = "audit_logs"
