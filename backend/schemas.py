@@ -68,6 +68,7 @@ class EventResponse(EventBase):
 # ==========================================
 class TeamCreate(BaseModel):
     name: str = Field(..., max_length=100)
+    members: Optional[List[UUID]] = None
 
 class TeamResponse(BaseModel):
     id: UUID
@@ -85,9 +86,9 @@ class TeamResponse(BaseModel):
 class SubmissionCreate(BaseModel):
     title: str = Field(..., max_length=200)
     description: Optional[str] = None
-    github_url: Optional[str] = None
-    demo_url: Optional[str] = None
-    video_url: Optional[str] = None
+    github_url: Optional[HttpUrl] = None
+    demo_url: Optional[HttpUrl] = None
+    video_url: Optional[HttpUrl] = None
     track: Optional[str] = None
     tags: List[str] = []
 
