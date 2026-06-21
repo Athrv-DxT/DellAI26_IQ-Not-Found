@@ -1,7 +1,7 @@
 from typing import List
 import numpy as np
 from sqlmodel import Session, select
-from app.models import RawScore, AuditLog
+from backend.models import RawScore, AuditLog
 
 GLOBAL_MEAN = 7.0
 GLOBAL_STD = 1.5

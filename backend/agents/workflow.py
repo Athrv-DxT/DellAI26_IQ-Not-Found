@@ -3,13 +3,13 @@ import json
 import datetime
 from typing import List, Dict, Any, Callable
 from langgraph.graph import StateGraph, END
-from app.agents.state import AgentState
-from app.agents.sybil import check_duplicates
-from app.agents.matcher import match_projects_to_judges
-from app.database import engine
+from backend.agents.state import AgentState
+from backend.agents.sybil import check_duplicates
+from backend.agents.matcher import match_projects_to_judges
+from backend.database import engine
 from sqlmodel import Session
-from app.models import ProjectSubmission, AuditLog
-from app.agents.comm_agent import analyze_sentiment_and_tone, predict_optimal_send_time, get_multilingual_template
+from backend.models import ProjectSubmission, AuditLog
+from backend.agents.comm_agent import analyze_sentiment_and_tone, predict_optimal_send_time, get_multilingual_template
 
 import time
 

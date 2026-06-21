@@ -1,8 +1,8 @@
 from typing import Dict, Any, List
 import numpy as np
 from sqlmodel import Session, select
-from app.models import RawScore, ProjectSubmission, JudgeProfile, User, AuditLog
-from app.agents.workflow import broadcaster
+from backend.models import RawScore, ProjectSubmission, JudgeProfile, User, AuditLog
+from backend.agents.workflow import broadcaster
 
 def detect_score_bias(session: Session, score_id: int) -> Dict[str, Any]:
     """

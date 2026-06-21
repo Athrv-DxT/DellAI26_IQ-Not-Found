@@ -2,7 +2,7 @@ from typing import List, Tuple, Dict, Any
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 from sqlmodel import Session, select
-from app.models import ProjectSubmission, JudgeProfile, User, AuditLog
+from backend.models import ProjectSubmission, JudgeProfile, User, AuditLog
 
 def match_projects_to_judges(session: Session) -> List[Tuple[int, int, float, Dict[str, Any]]]:
     """

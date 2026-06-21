@@ -58,7 +58,10 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         user_id_str: str = payload.get("sub")
         if user_id_str is None or payload.get("refresh") is True:
             raise credentials_exception
-        user_id = UUID(user_id_str)
+        try:
+            user_id = UUID(user_id_str)
+        except ValueError:
+            user_id = int(user_id_str)
     except (JWTError, ValueError):
         raise credentials_exception
 

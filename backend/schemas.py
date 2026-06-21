@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field, HttpUrl
-from typing import List, Optional
+from typing import List, Optional, Union
 from uuid import UUID
 from datetime import datetime
 
@@ -32,7 +32,7 @@ class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
 class UserResponse(UserBase):
-    id: UUID
+    id: Union[UUID, int]
     skills: List[str]
     created_at: datetime
 

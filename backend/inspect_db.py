@@ -1,6 +1,6 @@
 from sqlmodel import Session, select
-from app.database import engine
-from app.models import ProjectSubmission
+from database import engine
+from models import ProjectSubmission
 
 with Session(engine) as session:
     subs = session.exec(select(ProjectSubmission)).all()

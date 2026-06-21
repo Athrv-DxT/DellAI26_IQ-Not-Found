@@ -5,7 +5,7 @@ class Redis:
         print(f"[Redis Publish] Channel: {channel}, Message: {message}")
         try:
             # Broadcast to web socket logs
-            from app.agents.workflow import broadcaster
+            from backend.agents.workflow import broadcaster
             broadcaster.broadcast(f"[Redis Publish] Channel: {channel} | Message: {message}", "redis_alert")
         except Exception:
             pass

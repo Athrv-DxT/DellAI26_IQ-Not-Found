@@ -1,171 +1,219 @@
-import uuid
-from sqlalchemy import Column, String, Integer, Float, Boolean, DateTime, ForeignKey, Text, Table, Index
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
-from .database import Base
+import json
+from typing import List, Optional, Dict
+from datetime import datetime
+from sqlmodel import SQLModel, Field, Column, Relationship
+from sqlalchemy.dialects.postgresql import JSONB, ARRAY
+from sqlalchemy import Float, Text, String
+from backend.config import settings
 
-class User(Base):
+# Bind pgvector dynamically based on config
+if settings.USE_PGVECTOR:
+    try:
+        from pgvector.sqlalchemy import Vector
+        EmbeddingType = Vector(1536)
+    except ImportError:
+        EmbeddingType = ARRAY(Float)
+else:
+    EmbeddingType = ARRAY(Float)
+
+class User(SQLModel, table=True):
     __tablename__ = "users"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    email: str = Field(unique=True, index=True)
+    full_name: str
+    role: str = "PARTICIPANT" # PARTICIPANT, ORGANIZER, JUDGE
+    hashed_password: Optional[str] = None
+    bio: Optional[str] = None
+    skills: Optional[List[str]] = Field(
+        default_factory=list,
+        sa_column=Column(JSONB, nullable=True)
+    )
+    institution: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String(100), nullable=False)
-    email = Column(String(150), unique=True, nullable=False, index=True)
-    password = Column(String(255), nullable=False)  # bcrypt hashed
-    role = Column(String(20), nullable=False)  # participant, organizer, reviewer, admin
-    skills = Column(ARRAY(Text), default=[])  # Extracted by spaCy NER
-    gender = Column(String(20), nullable=True)  # bias monitoring
-    institution = Column(String(150), nullable=True)  # bias monitoring
-    location = Column(String(100), nullable=True)  # bias monitoring
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    @property
+    def name(self) -> str:
+        return self.full_name
 
-    # Relationships
-    reviewer_profile = relationship("ReviewerProfile", back_populates="user", uselist=False)
-    created_events = relationship("Event", back_populates="organizer")
+    @name.setter
+    def name(self, value: str):
+        self.full_name = value
 
-class Event(Base):
-    __tablename__ = "events"
+    @property
+    def password(self) -> str:
+        return self.hashed_password
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    title = Column(String(200), nullable=False)
-    theme = Column(Text, nullable=True)
-    description = Column(Text, nullable=True)
-    status = Column(String(20), nullable=False, default="draft")  # draft, published, registration, hacking, judging, closed
-    max_teams = Column(Integer, default=100)
-    team_size = Column(Integer, default=4)
-    start_time = Column(DateTime(timezone=True), nullable=True)
-    end_time = Column(DateTime(timezone=True), nullable=True)
-    organizer_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    @password.setter
+    def password(self, value: str):
+        self.hashed_password = value
 
-    # Relationships
-    organizer = relationship("User", back_populates="created_events")
-    teams = relationship("Team", back_populates="event", cascade="all, delete-orphan")
-    submissions = relationship("Submission", back_populates="event")
-    results = relationship("Result", back_populates="event")
-    bias_alerts = relationship("BiasAlert", back_populates="event")
-
-class Team(Base):
+class Team(SQLModel, table=True):
     __tablename__ = "teams"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(unique=True, index=True)
+    repo_url: Optional[str] = None
+    status: str = "PENDING" # PENDING, VERIFIED, BLOCKED
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    event_id = Column(UUID(as_uuid=True), ForeignKey("events.id", ondelete="CASCADE"), nullable=False)
-    name = Column(String(100), nullable=False)
-    members = Column(ARRAY(UUID(as_uuid=True)), default=[])  # array of user IDs
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+class ProjectSubmission(SQLModel, table=True):
+    __tablename__ = "project_submissions"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    team_id: int = Field(foreign_key="teams.id", unique=True)
+    title: str
+    abstract: str
+    tech_stack: str # Comma-separated list or JSON
+    track: str = Field(default="General", index=True)
+    state: str = "PENDING_REVIEW" # PENDING_REVIEW, FLAGGED_DUPLICATE, MATCHED, APPROVED
+    github_url: Optional[str] = None
+    demo_url: Optional[str] = None
+    tags: Optional[str] = None # Comma-separated tags
+    
+    # Store embedding as pgvector or Float Array depending on configuration
+    embedding: Optional[List[float]] = Field(
+        default=None, 
+        sa_column=Column(EmbeddingType, nullable=True)
+    )
+    
+    # Automated PS1 enrichment fields
+    extracted_skills: Optional[List[str]] = Field(
+        default_factory=list,
+        sa_column=Column(JSONB, nullable=True)
+    )
+    generated_email: Optional[str] = Field(
+        default=None,
+        sa_column=Column(Text, nullable=True)
+    )
+    generated_promo: Optional[str] = Field(
+        default=None,
+        sa_column=Column(Text, nullable=True)
+    )
+    predictive_success_score: Optional[float] = Field(
+        sa_column=Column(Float, nullable=True)
+    )
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    # Relationships
-    event = relationship("Event", back_populates="teams")
-    submission = relationship("Submission", back_populates="team", uselist=False, cascade="all, delete-orphan")
-    results = relationship("Result", back_populates="team")
+class JudgeProfile(SQLModel, table=True):
+    __tablename__ = "judge_profiles"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", unique=True)
+    bio: str
+    max_projects: int = 5
+    expertise: Optional[str] = None # Comma-separated tags/skills
+    current_load: int = Field(default=0)
+    institution: Optional[str] = None
+    
+    capability_embedding: Optional[List[float]] = Field(
+        default=None, 
+        sa_column=Column(EmbeddingType, nullable=True)
+    )
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
-class Submission(Base):
-    __tablename__ = "submissions"
+class RawScore(SQLModel, table=True):
+    __tablename__ = "raw_scores"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    judge_id: int = Field(foreign_key="judge_profiles.id")
+    project_id: int = Field(foreign_key="project_submissions.id")
+    
+    innovation: float = Field(default=5.0)
+    tech: float = Field(default=5.0)
+    feasibility: float = Field(default=5.0)
+    presentation: float = Field(default=5.0)
+    bias_flag: bool = Field(default=False)
+    bias_type: Optional[str] = None
+    
+    # Dict storing specific criteria scores (e.g., {"innovation": 8, "feasibility": 9})
+    criteria_scores: Dict[str, float] = Field(
+        default_factory=dict, 
+        sa_column=Column(JSONB, nullable=False)
+    )
+    
+    raw_score: float
+    normalized_score: Optional[float] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False, index=True)
-    event_id = Column(UUID(as_uuid=True), ForeignKey("events.id", ondelete="CASCADE"), nullable=False, index=True)
-    title = Column(String(200), nullable=False)
-    description = Column(Text, nullable=True)
-    github_url = Column(String(500), nullable=True)
-    demo_url = Column(String(500), nullable=True)
-    video_url = Column(String(500), nullable=True)
-    track = Column(String(100), nullable=True)
-    tags = Column(ARRAY(Text), default=[])  # tech stack tags
-    submitted_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-
-    # Relationships
-    team = relationship("Team", back_populates="submission")
-    event = relationship("Event", back_populates="submissions")
-    assignments = relationship("Assignment", back_populates="submission", cascade="all, delete-orphan")
-
-class ReviewerProfile(Base):
-    __tablename__ = "reviewer_profiles"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
-    expertise_areas = Column(ARRAY(Text), default=[])
-    max_assignments = Column(Integer, default=5)
-    current_load = Column(Integer, default=0)
-
-    # Relationships
-    user = relationship("User", back_populates="reviewer_profile")
-
-class Assignment(Base):
-    __tablename__ = "assignments"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    reviewer_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    submission_id = Column(UUID(as_uuid=True), ForeignKey("submissions.id", ondelete="CASCADE"), nullable=False)
-    expertise_score = Column(Float, nullable=True)
-    conflict_flag = Column(Boolean, default=False)
-    conflict_reason = Column(String(200), nullable=True)
-    assigned_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    # Relationships
-    submission = relationship("Submission", back_populates="assignments")
-    scores = relationship("Score", back_populates="assignment", cascade="all, delete-orphan")
-
-class Score(Base):
-    __tablename__ = "scores"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    assignment_id = Column(UUID(as_uuid=True), ForeignKey("assignments.id", ondelete="CASCADE"), nullable=False, index=True)
-    innovation = Column(Float, default=0.0)  # 0 to 10
-    tech_complexity = Column(Float, default=0.0)  # 0 to 10
-    feasibility = Column(Float, default=0.0)  # 0 to 10
-    presentation = Column(Float, default=0.0)  # 0 to 10
-    overall_comment = Column(Text, nullable=True)
-    final_score = Column(Float, default=0.0)  # Weighted average
-    bias_flag = Column(Boolean, default=False)
-    bias_type = Column(String(50), nullable=True)  # gender, institution, geographic
-    bias_confidence = Column(Float, nullable=True)  # z-score
-    submitted_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    # Relationships
-    assignment = relationship("Assignment", back_populates="scores")
-    bias_alerts = relationship("BiasAlert", back_populates="score", cascade="all, delete-orphan")
-
-class Result(Base):
-    __tablename__ = "results"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    event_id = Column(UUID(as_uuid=True), ForeignKey("events.id", ondelete="CASCADE"), nullable=False, index=True)
-    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
-    final_score = Column(Float, nullable=False)
-    rank = Column(Integer, nullable=False)
-    confidence = Column(Float, nullable=True)  # AI ranking confidence
-    feedback = Column(Text, nullable=True)  # LLM generated feedback
-    generated_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    # Relationships
-    event = relationship("Event", back_populates="results")
-    team = relationship("Team", back_populates="results")
-
-class DuplicateFlag(Base):
+class DuplicateFlag(SQLModel, table=True):
     __tablename__ = "duplicate_flags"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id")
+    similar_user_id: int = Field(foreign_key="users.id")
+    similarity: float
+    resolved: bool = Field(default=False)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    original_user = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    duplicate_user = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    similarity = Column(Float, nullable=False)
-    resolved = Column(Boolean, default=False)
-    flagged_at = Column(DateTime(timezone=True), server_default=func.now())
+class Assignment(SQLModel, table=True):
+    __tablename__ = "assignments"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    reviewer_id: int = Field(foreign_key="judge_profiles.id")
+    submission_id: int = Field(foreign_key="project_submissions.id")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
-class BiasAlert(Base):
+class BiasAlert(SQLModel, table=True):
     __tablename__ = "bias_alerts"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    reviewer_id: int = Field(foreign_key="judge_profiles.id")
+    submission_id: int = Field(foreign_key="project_submissions.id")
+    type: str
+    z_score: float
+    resolved: bool = Field(default=False)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    event_id = Column(UUID(as_uuid=True), ForeignKey("events.id", ondelete="CASCADE"), nullable=False, index=True)
-    score_id = Column(UUID(as_uuid=True), ForeignKey("scores.id", ondelete="CASCADE"), nullable=False)
-    bias_type = Column(String(50), nullable=False)
-    z_score = Column(Float, nullable=False)
-    reviewer_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    submission_id = Column(UUID(as_uuid=True), ForeignKey("submissions.id", ondelete="CASCADE"), nullable=False)
-    resolved = Column(Boolean, default=False)
-    fired_at = Column(DateTime(timezone=True), server_default=func.now())
+class Result(SQLModel, table=True):
+    __tablename__ = "results"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    submission_id: int = Field(foreign_key="project_submissions.id", unique=True)
+    final_score: float
+    rank: int
+    feedback: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    # Relationships
-    event = relationship("Event", back_populates="bias_alerts")
-    score = relationship("Score", back_populates="bias_alerts")
+class EvaluationCriteria(SQLModel, table=True):
+    __tablename__ = "evaluation_criteria"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(unique=True, index=True)
+    weight: float = Field(default=1.0)
+    description: Optional[str] = None
+
+class SystemConfig(SQLModel, table=True):
+    __tablename__ = "system_config"
+    key: str = Field(primary_key=True)
+    value: str
+
+class AuditLog(SQLModel, table=True):
+    __tablename__ = "audit_logs"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    action: str
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    details: str
+    prev_hash: Optional[str] = Field(default=None, sa_column=Column(String, nullable=True))
+    hash: Optional[str] = Field(default=None, sa_column=Column(String, nullable=True))
+
+
+import hashlib
+from sqlalchemy.event import listens_for
+from sqlalchemy import text
+
+_last_audit_hash = None
+
+def reset_blockchain_cache():
+    global _last_audit_hash
+    _last_audit_hash = None
+
+@listens_for(AuditLog, 'before_insert')
+def before_insert_audit_log(mapper, connection, target):
+    global _last_audit_hash
+    if _last_audit_hash is None:
+        try:
+            result = connection.execute(text("SELECT hash FROM audit_logs ORDER BY id DESC LIMIT 1")).fetchone()
+            _last_audit_hash = result[0] if (result and result[0]) else "0000000000000000000000000000000000000000000000000000000000000000"
+        except Exception:
+            _last_audit_hash = "0000000000000000000000000000000000000000000000000000000000000000"
+    
+    target.prev_hash = _last_audit_hash
+    if not target.timestamp:
+        target.timestamp = datetime.utcnow()
+    payload = f"{target.prev_hash}|{target.action}|{target.details}|{target.timestamp.isoformat()}"
+    target.hash = hashlib.sha256(payload.encode('utf-8')).hexdigest()
+    _last_audit_hash = target.hash
+

@@ -1,7 +1,7 @@
 from sqlmodel import Session, SQLModel, Field, Column, select
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from sqlalchemy import Float, Text, String, inspect
-from app.database import engine
+from database import engine
 from typing import List, Optional, Dict
 import json
 import numpy as np

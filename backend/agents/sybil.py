@@ -3,8 +3,8 @@ from typing import List, Tuple, Optional
 import numpy as np
 from sklearn.cluster import DBSCAN
 from sqlmodel import Session, select
-from app.models import ProjectSubmission, AuditLog
-from app.database import engine
+from backend.models import ProjectSubmission, AuditLog
+from backend.database import engine
 
 def generate_text_embedding(text: str) -> List[float]:
     """

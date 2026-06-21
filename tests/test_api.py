@@ -9,7 +9,7 @@ def test_read_root():
     """
     Test root health check endpoint.
     """
-    response = client.get("/")
+    response = client.get("/health")
     assert response.status_code == 200
     assert response.json()["status"] == "online"
     assert response.json()["docs_url"] == "/docs"

@@ -1,21 +1,31 @@
-import os
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
+from sqlmodel import create_engine, Session, SQLModel
+from sqlalchemy import text
 from sqlalchemy.orm import sessionmaker
+from backend.config import settings
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL", 
-    "postgresql://postgres:postgres@localhost:5432/hackathon_db"
-)
-
-engine = create_engine(DATABASE_URL)
+engine = create_engine(settings.DATABASE_URL, echo=False)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-Base = declarative_base()
+def init_db():
+    # Attempt to create extension if pgvector is enabled
+    with Session(engine) as session:
+        if settings.USE_PGVECTOR:
+            try:
+                session.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+                session.commit()
+                print("pgvector extension loaded successfully!")
+            except Exception as e:
+                session.rollback()
+                print(f"Warning: Failed to load pgvector extension ({e}). Standard array fallback will be used.")
+        else:
+            print("pgvector extension disabled. Using standard array storage.")
+        
+        # Import models here to register them with SQLModel
+        from backend import models
+        SQLModel.metadata.create_all(engine)
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+def get_session():
+    with Session(engine) as session:
+        yield session
+
+get_db = get_session
