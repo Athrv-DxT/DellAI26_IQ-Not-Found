@@ -77,69 +77,63 @@ const accentMap: Record<string, { dot: string; text: string; bg: string; border:
 const techStack = ["FastAPI", "Next.js 14", "SQLModel", "ChromaDB", "LangGraph", "SciPy", "spaCy", "WebSockets", "PostgreSQL"];
 
 export default function Home() {
-  return (
     <div className="min-h-screen" style={{ background: "var(--bg)", color: "var(--text)" }}>
-      {/* Navy Header & Hero Section (Unstop Brand Jumbotron) */}
-      <div className="dark-section relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0b1528 0%, #152c52 100%)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        <div className="ambient" />
-
-        {/* ── Nav ── */}
-        <nav className="relative z-10 flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center">
-              <Activity className="w-3.5 h-3.5 text-indigo-400" />
-            </div>
-            <span className="font-outfit font-bold text-sm text-white tracking-tight">HackOS</span>
-            <span className="badge badge-muted text-[10px]" style={{ color: "rgba(255,255,255,0.6)", background: "rgba(255,255,255,0.04)" }}>Dell 2026</span>
+      {/* ── Nav ── */}
+      <nav className="relative z-10 flex items-center justify-between px-6 py-4 max-w-6xl mx-auto border-b border-gray-200" style={{ background: "#ffffff" }}>
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center border border-indigo-100">
+            <Activity className="w-3.5 h-3.5 text-indigo-600" />
           </div>
-          <div className="flex items-center gap-2">
-            <Link href="/dashboard" className="btn btn-ghost text-xs" style={{ color: "rgba(255,255,255,0.8)", background: "transparent" }}>Dashboard</Link>
-            <Link href="/register" className="btn btn-primary text-xs">Register Now <ArrowRight className="w-3.5 h-3.5" /></Link>
+          <span className="font-outfit font-bold text-sm text-slate-900 tracking-tight">HackOS</span>
+          <span className="badge badge-muted text-[10px]">Dell 2026</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link href="/dashboard" className="btn btn-ghost text-xs">Dashboard</Link>
+          <Link href="/register" className="btn btn-primary text-xs">Register Now <ArrowRight className="w-3.5 h-3.5" /></Link>
+        </div>
+      </nav>
+
+      {/* ── Hero (Unstop Brand Light Hero) ── */}
+      <section className="relative z-10 max-w-6xl mx-auto px-6 pt-20 pb-24 text-center">
+        <div className="animate-fade-up">
+          <div className="inline-flex items-center gap-2 badge badge-indigo mb-6 text-xs">
+            <span className="live-dot">Live</span>
           </div>
-        </nav>
 
-        {/* ── Hero ── */}
-        <section className="relative z-10 max-w-6xl mx-auto px-6 pt-20 pb-24 text-center">
-          <div className="animate-fade-up">
-            <div className="inline-flex items-center gap-2 badge badge-indigo mb-6 text-xs" style={{ color: "var(--sky)", background: "rgba(56,189,248,0.08)", borderColor: "rgba(56,189,248,0.2)" }}>
-              <span className="live-dot">Live</span>
-            </div>
+          <h1 className="font-outfit text-5xl sm:text-7xl font-extrabold tracking-tight mb-6 leading-[1.05]" style={{ color: "#0f172a" }}>
+            The Hackathon Platform<br />
+            that <span className="text-shimmer">runs itself.</span>
+          </h1>
 
-            <h1 className="font-outfit text-5xl sm:text-7xl font-extrabold tracking-tight mb-6 leading-[1.05]" style={{ color: "#fff" }}>
-              The Hackathon Platform<br />
-              that <span className="text-shimmer">runs itself.</span>
-            </h1>
+          <p className="max-w-xl mx-auto text-base leading-relaxed mb-8" style={{ color: "var(--text-muted)" }}>
+            Autonomous agents handle registration deduplication, judge matching, bias detection,
+            and ranking — so you can focus on building, not administrating.
+          </p>
 
-            <p className="max-w-xl mx-auto text-base leading-relaxed mb-8" style={{ color: "rgba(255,255,255,0.7)" }}>
-              Autonomous agents handle registration deduplication, judge matching, bias detection,
-              and ranking — so you can focus on building, not administrating.
-            </p>
-
-            <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
-              <Link href="/register" className="btn btn-primary px-6 py-3 text-sm">
-                Register as Participant <ArrowRight className="w-4 h-4" />
-              </Link>
-              <Link href="/dashboard" className="btn btn-ghost px-6 py-3 text-sm" style={{ color: "#fff", borderColor: "rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.04)" }}>
-                Open Organizer Dashboard
-              </Link>
-            </div>
-
-            {/* Stats row */}
-            <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto">
-              {[
-                { value: "18", label: "Projects" },
-                { value: "3",  label: "Judges" },
-                { value: "<2m", label: "Results" },
-              ].map(({ value, label }) => (
-                <div key={label} className="card py-4 animate-fade-up" style={{ background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.06)" }}>
-                  <p className="font-outfit text-2xl font-extrabold text-white tracking-tight">{value}</p>
-                  <p className="section-label mt-0.5" style={{ color: "rgba(255,255,255,0.5)" }}>{label}</p>
-                </div>
-              ))}
-            </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
+            <Link href="/register" className="btn btn-primary px-6 py-3 text-sm">
+              Register as Participant <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link href="/dashboard" className="btn btn-ghost px-6 py-3 text-sm">
+              Open Organizer Dashboard
+            </Link>
           </div>
-        </section>
-      </div>
+
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto">
+            {[
+              { value: "18", label: "Projects" },
+              { value: "3",  label: "Judges" },
+              { value: "<2m", label: "Results" },
+            ].map(({ value, label }) => (
+              <div key={label} className="card py-4 animate-fade-up" style={{ background: "#ffffff", borderColor: "var(--border)" }}>
+                <p className="font-outfit text-2xl font-extrabold text-slate-900 tracking-tight">{value}</p>
+                <p className="section-label mt-0.5">{label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* ── Pipeline ── */}
       <section className="relative z-10 max-w-6xl mx-auto px-6 pb-20">
