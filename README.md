@@ -4,6 +4,8 @@
 
 A state-driven agentic operating system that automates the entire hackathon lifecycle — from registration deduplication to winner certificate generation — using autonomous AI agents.
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Ravikant-sys/DellAI26_IQ-Not-Found/tree/submission/hackos-agentic-platform-v2)
+
 ---
 
 ## 🏗️ Architecture
