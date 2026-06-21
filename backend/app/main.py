@@ -1308,7 +1308,7 @@ def bias_check_task(score_id: int, event_id: int):
             session.commit()
             
             # Publish to Redis channel
-            r = redis.from_url("redis://localhost:6379")
+            r = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
             r.publish(f"bias:event:{event_id}", f"Alert ID {alert.id}: Reviewer {judge.id} scored Project {project.id} with z-score {z_score:.2f}")
             
             broadcaster.broadcast(
