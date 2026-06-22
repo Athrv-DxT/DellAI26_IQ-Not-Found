@@ -8,26 +8,45 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Design tokens
-        bg:        "#060810",
-        surface:   "#0d1117",
-        "surface-2": "#131922",
+        // Supabase Design tokens
+        bg:        "#ffffff",
+        surface:   "#ffffff",
+        "surface-2": "#fafafa",
         // Accents
-        indigo:  "#6366f1",
-        sky:     "#38bdf8",
-        emerald: "#10b981",
-        amber:   "#f59e0b",
-        rose:    "#f43f5e",
-        violet:  "#8b5cf6",
+        primary:   "#3ecf8e",
+        "primary-deep": "#24b47e",
+        "primary-soft": "#4ade80",
+        ink:       "#171717",
+        "ink-secondary": "#212121",
+        "ink-mute": "#707070",
+        "ink-mute-2": "#9a9a9a",
+        "ink-faint": "#b2b2b2",
+        "on-primary": "#171717",
+        "on-dark": "#ffffff",
+        canvas:    "#ffffff",
+        "canvas-soft": "#fafafa",
+        "canvas-night": "#1c1c1c",
+        "canvas-night-soft": "#202020",
+        hairline:  "#dfdfdf",
+        "hairline-strong": "#c7c7c7",
+        "hairline-cool": "#ededed",
+        "hairline-cool-2": "#efefef",
+        "hairline-cool-3": "#d4d4d4",
+        indigo:    "#3ecf8e", // Compat mapping to emerald green
+        sky:       "#054cff", // Accent indigo
+        emerald:   "#3ecf8e", // Signature emerald
+        amber:     "#ffdb13", // Accent yellow
+        rose:      "#ff2201", // Accent tomato
+        violet:    "#644fc1", // Accent violet
+        
         // Legacy compat
-        background:     "#060810",
-        panel:          "#0d1117",
-        ink:            "#e8edf4",
-        inkMuted:       "#6b7a8d",
-        accentSky:      "#38bdf8",
-        accentEmerald:  "#10b981",
-        accentRose:     "#f43f5e",
-        accentAmber:    "#f59e0b",
+        background:     "#ffffff",
+        panel:          "#ffffff",
+        inkMuted:       "#707070",
+        accentSky:      "#054cff",
+        accentEmerald:  "#3ecf8e",
+        accentRose:     "#ff2201",
+        accentAmber:    "#ffdb13",
       },
       fontFamily: {
         inter:   ["var(--font-inter)",  "Inter", "system-ui", "sans-serif"],

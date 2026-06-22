@@ -49,9 +49,23 @@ def check_duplicates(
     if not existing_submissions:
         return False, None, 0.0
         
-    # Construct embeddings matrix
+    # Construct embeddings matrix with fallback if None
+    if new_submission.embedding is None:
+        new_submission.embedding = generate_text_embedding(new_submission.abstract)
+        session.add(new_submission)
+        session.commit()
+        session.refresh(new_submission)
+        
     new_emb = np.array(new_submission.embedding)
-    existing_embs = [np.array(sub.embedding) for sub in existing_submissions]
+    
+    existing_embs = []
+    for sub in existing_submissions:
+        if sub.embedding is None:
+            sub.embedding = generate_text_embedding(sub.abstract)
+            session.add(sub)
+            session.commit()
+            session.refresh(sub)
+        existing_embs.append(np.array(sub.embedding))
     
     # Check for direct pairwise duplicate (distance < epsilon)
     min_dist = 1.0

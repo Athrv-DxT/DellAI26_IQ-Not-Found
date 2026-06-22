@@ -43,7 +43,7 @@ echo "Step 5: Starting servers..."
 echo "Starting FastAPI Backend Server on port 8000..."
 cd backend
 source venv/bin/activate
-nohup uvicorn app.main:app --port 8000 --host 0.0.0.0 > backend.log 2>&1 &
+nohup uvicorn main:app --port 8000 --host 0.0.0.0 > backend.log 2>&1 &
 BACKEND_PID=$!
 echo "Backend started in background with PID: $BACKEND_PID"
 cd ..

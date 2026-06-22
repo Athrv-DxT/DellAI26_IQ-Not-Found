@@ -1,218 +1,142 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import { useStore } from "../lib/useStore";
-import { 
-  ArrowLeft, 
-  BarChart2, 
-  TrendingUp, 
-  AlertOctagon, 
-  CheckSquare, 
-  Activity,
-  Layers,
-  Database
-} from "lucide-react";
+import { ArrowLeft, BarChart2, TrendingUp, AlertOctagon, CheckSquare, RefreshCw, Layers, Database } from "lucide-react";
 
 export default function AnalyticsDashboard() {
   const { submissions, leaderboard, biasAlerts, loading, refresh } = useStore();
 
-  useEffect(() => {
-    refresh();
-  }, []);
+  useEffect(() => { refresh(); }, []);
 
-  // 1. Compute Track Submissions Counts dynamically
-  const tracks = [
-    "AI & Intelligent Agents",
-    "Web3 & Decentralized Systems",
-    "Cloud & Developer Platforms"
-  ];
-  
-  const trackStats = tracks.map(trackName => {
-    const count = submissions.filter(s => s.track === trackName && s.state !== "FLAGGED_DUPLICATE").length;
-    return { name: trackName, count };
-  });
+  const tracks = ["AI & Intelligent Agents", "Web3 & Decentralized Systems", "Cloud & Developer Platforms"];
+  const trackStats = tracks.map(trackName => ({ name: trackName, count: submissions.filter(s => s.track === trackName && s.state !== "FLAGGED_DUPLICATE").length }));
 
-  // 2. Compute Bias alert dimensions dynamically
   const biasDimensions = [
-    { name: "Gender Bias", count: 0 },
-    { name: "Geographic Bias", count: 0 },
-    { name: "Language/Accent Bias", count: 0 },
-    { name: "Tech Stack Bias", count: 0 }
+    { name: "Gender Bias",         count: biasAlerts.filter(a => a.details.toLowerCase().includes("gender")).length,     color: "#ef4444" },
+    { name: "Geographic Bias",     count: biasAlerts.filter(a => a.details.toLowerCase().includes("geographic")).length, color: "#f59e0b" },
+    { name: "Language/Accent",     count: biasAlerts.filter(a => a.details.toLowerCase().includes("language") || a.details.toLowerCase().includes("accent")).length, color: "#3b82f6" },
+    { name: "Tech Stack Bias",     count: biasAlerts.filter(a => a.details.toLowerCase().includes("tech")).length,       color: "#8b5cf6" },
   ];
-
-  biasAlerts.forEach(alert => {
-    if (alert.details.toLowerCase().includes("gender")) biasDimensions[0].count++;
-    else if (alert.details.toLowerCase().includes("geographic")) biasDimensions[1].count++;
-    else if (alert.details.toLowerCase().includes("language") || alert.details.toLowerCase().includes("accent")) biasDimensions[2].count++;
-    else if (alert.details.toLowerCase().includes("tech")) biasDimensions[3].count++;
-  });
 
   const totalBiasAlerts = biasAlerts.length;
-
-  // 3. Compute evaluation completion gauge
   const totalSubmissions = submissions.filter(s => s.state !== "FLAGGED_DUPLICATE").length;
-  const scoredSubmissions = submissions.filter(s => s.state === "APPROVED" || s.state === "MATCHED").length; // Evaluated state indicators
+  const scoredSubmissions = submissions.filter(s => s.state === "APPROVED" || s.state === "MATCHED").length;
   const completionPercentage = totalSubmissions > 0 ? Math.round((scoredSubmissions / totalSubmissions) * 100) : 0;
 
-  // 4. Registration Timeline (Mock timeline points combined with live count)
   const timelineData = [
-    { day: "Day 1", count: Math.max(2, Math.round(totalSubmissions * 0.15)) },
-    { day: "Day 2", count: Math.max(5, Math.round(totalSubmissions * 0.40)) },
-    { day: "Day 3", count: Math.max(9, Math.round(totalSubmissions * 0.65)) },
-    { day: "Day 4", count: Math.max(12, Math.round(totalSubmissions * 0.85)) },
-    { day: "Day 5 (Today)", count: totalSubmissions }
+    { day: "Day 1",      count: Math.max(2,  Math.round(totalSubmissions * 0.15)) },
+    { day: "Day 2",      count: Math.max(5,  Math.round(totalSubmissions * 0.40)) },
+    { day: "Day 3",      count: Math.max(9,  Math.round(totalSubmissions * 0.65)) },
+    { day: "Day 4",      count: Math.max(12, Math.round(totalSubmissions * 0.85)) },
+    { day: "Today",      count: totalSubmissions },
+  ];
+
+  const metricCards = [
+    { label: "Total Submissions",   value: totalSubmissions,          icon: <Database className="w-6 h-6 text-sky-500" />,        color: "text-sky-700",     bg: "#f0f9ff", border: "#bae6fd" },
+    { label: "Tracks Represented",  value: 3,                         icon: <Layers className="w-6 h-6 text-emerald-500" />,      color: "text-emerald-700", bg: "#f0fdf4", border: "#86efac" },
+    { label: "Active Bias Flags",   value: totalBiasAlerts,           icon: <AlertOctagon className="w-6 h-6 text-rose-500" />,   color: "text-rose-700",    bg: "#fef2f2", border: "#fca5a5" },
+    { label: "Scoring Completion",  value: `${completionPercentage}%`,icon: <CheckSquare className="w-6 h-6 text-violet-500" />,  color: "text-violet-700",  bg: "#faf5ff", border: "#d8b4fe" },
   ];
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#070a13] text-[#f1f5f9] flex items-center justify-center font-sans">
-        <div className="flex items-center gap-2">
-          <RefreshCw className="w-5 h-5 animate-spin text-[#38bdf8]" />
-          <span>Synchronizing Analytics Engine...</span>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
+        <div className="flex items-center gap-2 text-sm" style={{ color: "var(--text-muted)" }}>
+          <RefreshCw className="w-5 h-5 animate-spin text-emerald-500" />
+          Synchronizing Analytics Engine...
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#070a13] text-[#f1f5f9] p-6 md:p-10 relative overflow-hidden font-sans">
-      {/* Ambient Light blobs */}
-      <div className="fixed top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-blue-600/10 blur-[120px] pointer-events-none z-0"></div>
-      <div className="fixed bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none z-0"></div>
-      <div className="fixed top-[30%] right-[10%] w-[30vw] h-[30vw] rounded-full bg-purple-600/5 blur-[100px] pointer-events-none z-0"></div>
+    <div className="min-h-screen p-6 md:p-10" style={{ background: "var(--bg)" }}>
+      <div className="max-w-6xl mx-auto space-y-6 animate-modal-open">
 
-      <div className="max-w-6xl mx-auto space-y-8 relative z-10 animate-modal-open">
-        
-        {/* Header navigation bar */}
-        <header className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
+        {/* Header */}
+        <header className="flex items-center justify-between pb-5 border-b" style={{ borderColor: "var(--border)" }}>
           <div className="space-y-1">
-            <Link 
-              href="/organizer"
-              className="inline-flex items-center gap-1.5 text-xs text-[#38bdf8] hover:text-sky-400 font-bold transition uppercase tracking-wider"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              Back to Console
+            <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider transition" style={{ color: "var(--sky)" }}>
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
             </Link>
-            <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
-              <BarChart2 className="w-7 h-7 text-[#38bdf8]" />
+            <h1 className="text-3xl font-black tracking-tight flex items-center gap-2" style={{ color: "var(--text)" }}>
+              <div className="w-9 h-9 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center">
+                <BarChart2 className="w-5 h-5 text-sky-600" />
+              </div>
               OS Metrics & Analytics
             </h1>
           </div>
-          <button 
-            onClick={refresh}
-            className="p-2 bg-[#0e1626] hover:bg-slate-800 border border-white/[0.06] rounded-xl text-slate-300 transition"
-          >
+          <button onClick={refresh} className="btn btn-ghost p-2.5">
             <RefreshCw className="w-4 h-4" />
           </button>
         </header>
 
-        {/* Top Metrics Cards Row */}
+        {/* Metric Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="glass-panel p-5 rounded-2xl flex items-center justify-between border border-white/[0.05]">
-            <div>
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Total Submissions</p>
-              <p className="text-2xl font-extrabold font-mono mt-1 text-white">{totalSubmissions}</p>
+          {metricCards.map(({ label, value, icon, color, bg, border }) => (
+            <div key={label} className="p-5 rounded-2xl flex items-center justify-between"
+              style={{ background: bg, border: `1.5px solid ${border}` }}>
+              <div>
+                <p className="section-label mb-1">{label}</p>
+                <p className={`text-2xl font-black font-mono ${color}`}>{value}</p>
+              </div>
+              {icon}
             </div>
-            <Database className="w-7 h-7 text-sky-400 opacity-60" />
-          </div>
-
-          <div className="glass-panel p-5 rounded-2xl flex items-center justify-between border border-white/[0.05]">
-            <div>
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Tracks Represented</p>
-              <p className="text-2xl font-extrabold font-mono mt-1 text-white">3</p>
-            </div>
-            <Layers className="w-7 h-7 text-emerald-400 opacity-60" />
-          </div>
-
-          <div className="glass-panel p-5 rounded-2xl flex items-center justify-between border border-white/[0.05]">
-            <div>
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Active Bias Flags</p>
-              <p className="text-2xl font-extrabold font-mono mt-1 text-rose-400">{totalBiasAlerts}</p>
-            </div>
-            <AlertOctagon className="w-7 h-7 text-rose-400 opacity-60" />
-          </div>
-
-          <div className="glass-panel p-5 rounded-2xl flex items-center justify-between border border-white/[0.05]">
-            <div>
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Scoring Completion</p>
-              <p className="text-2xl font-extrabold font-mono mt-1 text-[#10b981]">{completionPercentage}%</p>
-            </div>
-            <CheckSquare className="w-7 h-7 text-[#10b981] opacity-60" />
-          </div>
+          ))}
         </div>
 
         {/* Charts Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          
-          {/* Chart 1: Registration Timeline (Line Chart) */}
-          <section className="glass-panel rounded-2xl p-6 space-y-4">
-            <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <TrendingUp className="w-4 h-4 text-sky-400" />
-              Registration Timeline (Submissions)
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+          {/* Registration Timeline */}
+          <section className="panel rounded-2xl p-6 space-y-4">
+            <h2 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5" style={{ color: "var(--text)" }}>
+              <TrendingUp className="w-4 h-4 text-sky-500" /> Registration Timeline
             </h2>
-            <div className="h-60 w-full relative flex items-end justify-between pt-5 px-3">
-              {/* Draw responsive SVG Line */}
-              <svg className="absolute inset-0 w-full h-full p-6 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
-                {/* Horizontal Grid lines */}
-                <line x1="0" y1="20" x2="100" y2="20" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
-                <line x1="0" y1="50" x2="100" y2="50" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
-                <line x1="0" y1="80" x2="100" y2="80" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
-                
-                {/* Line Path */}
-                <path
-                  d={`M 0 90 
-                      L 25 ${100 - (timelineData[0].count / (totalSubmissions || 1)) * 80} 
-                      L 50 ${100 - (timelineData[1].count / (totalSubmissions || 1)) * 80} 
-                      L 75 ${100 - (timelineData[2].count / (totalSubmissions || 1)) * 80} 
-                      L 100 ${100 - (timelineData[4].count / (totalSubmissions || 1)) * 80}`}
-                  fill="none"
-                  stroke="url(#line-glow)"
-                  strokeWidth="2.5"
-                />
-                
-                {/* Gradients */}
+            <div className="h-56 relative flex items-end justify-between pt-5 px-2">
+              <svg className="absolute inset-0 w-full h-full p-5 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <line x1="0" y1="20" x2="100" y2="20" stroke="var(--border)" strokeWidth="0.5" />
+                <line x1="0" y1="50" x2="100" y2="50" stroke="var(--border)" strokeWidth="0.5" />
+                <line x1="0" y1="80" x2="100" y2="80" stroke="var(--border)" strokeWidth="0.5" />
+                <path d={`M 0 90 L 25 ${100 - (timelineData[0].count / (totalSubmissions || 1)) * 80} L 50 ${100 - (timelineData[1].count / (totalSubmissions || 1)) * 80} L 75 ${100 - (timelineData[2].count / (totalSubmissions || 1)) * 80} L 100 ${100 - (timelineData[4].count / (totalSubmissions || 1)) * 80}`}
+                  fill="none" stroke="url(#line-grad)" strokeWidth="2.5" />
                 <defs>
-                  <linearGradient id="line-glow" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#38bdf8" />
-                    <stop offset="100%" stopColor="#10b981" />
+                  <linearGradient id="line-grad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#3b82f6" />
+                    <stop offset="100%" stopColor="#3ecf8e" />
                   </linearGradient>
                 </defs>
               </svg>
-
-              {/* Day markers */}
               {timelineData.map((d, idx) => (
                 <div key={idx} className="flex flex-col items-center z-10 space-y-1">
-                  <span className="text-[10px] font-mono font-bold text-white bg-[#05080f] px-2 py-0.5 rounded border border-white/[0.06]">
-                    {d.count}
-                  </span>
-                  <span className="text-[9px] text-slate-500 uppercase tracking-wider">{d.day}</span>
+                  <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded" style={{ background: "var(--surface)", border: "1.5px solid var(--border)", color: "var(--text)" }}>{d.count}</span>
+                  <span className="text-[9px] uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>{d.day}</span>
                 </div>
               ))}
             </div>
           </section>
 
-          {/* Chart 2: Submissions per Track (Bar Chart) */}
-          <section className="glass-panel rounded-2xl p-6 space-y-4">
-            <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-emerald-400" />
-              Submissions per Track Stream
+          {/* Track Distribution */}
+          <section className="panel rounded-2xl p-6 space-y-4">
+            <h2 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5" style={{ color: "var(--text)" }}>
+              <Layers className="w-4 h-4 text-emerald-500" /> Submissions per Track
             </h2>
             <div className="space-y-4 pt-2">
               {trackStats.map((track, idx) => {
                 const maxVal = Math.max(...trackStats.map(t => t.count), 1);
                 const percent = Math.round((track.count / maxVal) * 100);
+                const colors = ["from-sky-400 to-sky-500", "from-violet-400 to-violet-500", "from-emerald-400 to-emerald-500"];
+                const textColors = ["text-sky-700", "text-violet-700", "text-emerald-700"];
                 return (
                   <div key={idx} className="space-y-1.5">
                     <div className="flex justify-between items-center text-[11px]">
-                      <span className="font-bold text-slate-200">{track.name}</span>
-                      <span className="font-mono text-emerald-400 font-bold">{track.count} projects</span>
+                      <span className="font-semibold" style={{ color: "var(--text)" }}>{track.name}</span>
+                      <span className={`font-mono font-black ${textColors[idx]}`}>{track.count} projects</span>
                     </div>
-                    <div className="h-3 bg-[#05080f] rounded-full border border-white/[0.04] overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-emerald-500 to-sky-500 rounded-full transition-all duration-500"
-                        style={{ width: `${percent}%` }}
-                      ></div>
+                    <div className="h-3 rounded-full overflow-hidden" style={{ background: "var(--bg-soft)", border: "1.5px solid var(--border)" }}>
+                      <div className={`h-full bg-gradient-to-r ${colors[idx]} rounded-full transition-all duration-500`} style={{ width: `${percent}%` }} />
                     </div>
                   </div>
                 );
@@ -220,145 +144,74 @@ export default function AnalyticsDashboard() {
             </div>
           </section>
 
-          {/* Chart 3: Bias Alerts Breakdown (Pie Chart) */}
-          <section className="glass-panel rounded-2xl p-6 space-y-4">
-            <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <AlertOctagon className="w-4 h-4 text-rose-400" />
-              Bias Anomalies Breakdown
+          {/* Bias Breakdown */}
+          <section className="panel rounded-2xl p-6 space-y-4">
+            <h2 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5" style={{ color: "var(--text)" }}>
+              <AlertOctagon className="w-4 h-4 text-rose-500" /> Bias Anomalies Breakdown
             </h2>
-            
             <div className="flex flex-col sm:flex-row items-center justify-around gap-6 pt-2">
-              {/* Circular Gauge */}
+              {/* Donut */}
               <div className="relative w-36 h-36 flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                  {/* Background Circle */}
-                  <circle cx="18" cy="18" r="15.915" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="2.5" />
-                  
-                  {/* Arc layers */}
+                  <circle cx="18" cy="18" r="15.915" fill="none" stroke="var(--border)" strokeWidth="2.5" />
                   {biasDimensions.map((dim, idx) => {
-                    const totalAlertsCount = totalBiasAlerts || 1;
-                    const strokePercent = (dim.count / totalAlertsCount) * 100;
-                    
-                    // Simple cumulative offset calculation
-                    let cumulativeOffset = 0;
-                    for (let i = 0; i < idx; i++) {
-                      cumulativeOffset += (biasDimensions[i].count / totalAlertsCount) * 100;
-                    }
-                    
-                    let strokeColors = ["#f43f5e", "#f59e0b", "#38bdf8", "#a855f7"];
+                    const total = totalBiasAlerts || 1;
+                    const pct = (dim.count / total) * 100;
+                    let offset = 0;
+                    for (let i = 0; i < idx; i++) offset += (biasDimensions[i].count / total) * 100;
                     return (
-                      <circle
-                        key={idx}
-                        cx="18"
-                        cy="18"
-                        r="15.915"
-                        fill="none"
-                        stroke={strokeColors[idx]}
-                        strokeWidth="3"
-                        strokeDasharray={`${strokePercent} ${100 - strokePercent}`}
-                        strokeDashoffset={-cumulativeOffset}
-                        className="transition-all duration-500"
-                      />
+                      <circle key={idx} cx="18" cy="18" r="15.915" fill="none"
+                        stroke={dim.color} strokeWidth="3"
+                        strokeDasharray={`${pct} ${100 - pct}`}
+                        strokeDashoffset={-offset}
+                        className="transition-all duration-500" />
                     );
                   })}
                 </svg>
                 <div className="absolute text-center">
-                  <p className="text-xl font-extrabold font-mono text-white">{totalBiasAlerts}</p>
-                  <p className="text-[9px] text-slate-500 uppercase tracking-wider">Flags</p>
+                  <p className="text-xl font-black font-mono" style={{ color: "var(--text)" }}>{totalBiasAlerts}</p>
+                  <p className="text-[9px] uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Flags</p>
                 </div>
               </div>
-
-              {/* Legend List */}
+              {/* Legend */}
               <div className="space-y-2.5">
-                {biasDimensions.map((dim, idx) => {
-                  let badgeColors = [
-                    "bg-rose-500/10 text-rose-400 border-rose-500/20",
-                    "bg-amber-500/10 text-amber-400 border-amber-500/20",
-                    "bg-sky-500/10 text-sky-400 border-sky-500/20",
-                    "bg-purple-500/10 text-purple-400 border-purple-500/20"
-                  ];
-                  return (
-                    <div key={idx} className="flex items-center gap-2 text-xs">
-                      <span className={`px-2 py-0.5 border rounded text-[9px] font-bold font-mono ${badgeColors[idx]}`}>
-                        {dim.count}
-                      </span>
-                      <span className="text-slate-300 font-semibold">{dim.name}</span>
-                    </div>
-                  );
-                })}
+                {biasDimensions.map((dim, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-xs">
+                    <span className="w-6 h-6 rounded flex items-center justify-center font-black text-[10px] font-mono" style={{ background: `${dim.color}15`, color: dim.color, border: `1.5px solid ${dim.color}30` }}>
+                      {dim.count}
+                    </span>
+                    <span className="font-semibold" style={{ color: "var(--text)" }}>{dim.name}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </section>
 
-          {/* Chart 4: Scoring Completion (Gauge Chart) */}
-          <section className="glass-panel rounded-2xl p-6 space-y-4 flex flex-col justify-between">
-            <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <CheckSquare className="w-4 h-4 text-[#10b981]" />
-              Overall Evaluation Progress
+          {/* Evaluation Progress */}
+          <section className="panel rounded-2xl p-6 space-y-4 flex flex-col justify-between">
+            <h2 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5" style={{ color: "var(--text)" }}>
+              <CheckSquare className="w-4 h-4 text-violet-500" /> Overall Evaluation Progress
             </h2>
-            
             <div className="flex flex-col items-center justify-center space-y-4 py-4">
               <div className="relative w-44 h-24 flex items-end justify-center overflow-hidden">
-                {/* Semi-circular gauge */}
                 <svg className="w-44 h-44 absolute top-0" viewBox="0 0 36 36">
-                  {/* Background track (semi-circle) */}
-                  <path
-                    d="M 6 18 A 12 12 0 0 1 30 18"
-                    fill="none"
-                    stroke="rgba(255,255,255,0.03)"
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                  />
-                  {/* Active completed track */}
-                  <path
-                    d="M 6 18 A 12 12 0 0 1 30 18"
-                    fill="none"
-                    stroke="#10b981"
-                    strokeWidth="3.8"
-                    strokeLinecap="round"
-                    strokeDasharray="100"
-                    strokeDashoffset={100 - (completionPercentage / 100) * 100}
-                    className="transition-all duration-700"
-                  />
+                  <path d="M 6 18 A 12 12 0 0 1 30 18" fill="none" stroke="var(--border)" strokeWidth="3.5" strokeLinecap="round" />
+                  <path d="M 6 18 A 12 12 0 0 1 30 18" fill="none" stroke="#8b5cf6" strokeWidth="3.8" strokeLinecap="round"
+                    strokeDasharray="100" strokeDashoffset={100 - (completionPercentage / 100) * 100}
+                    className="transition-all duration-700" />
                 </svg>
-                
                 <div className="text-center z-10">
-                  <p className="text-3xl font-extrabold font-mono text-white">{completionPercentage}%</p>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Evaluation Rate</p>
+                  <p className="text-3xl font-black font-mono text-violet-700">{completionPercentage}%</p>
+                  <p className="section-label">Evaluation Rate</p>
                 </div>
               </div>
-
-              <p className="text-xs text-slate-400 text-center leading-relaxed max-w-sm">
-                {scoredSubmissions} of {totalSubmissions} uniquely registered projects have been matched to reviewers and submitted with normalized criteria evaluations.
+              <p className="text-xs text-center leading-relaxed max-w-sm" style={{ color: "var(--text-muted)" }}>
+                {scoredSubmissions} of {totalSubmissions} projects have been matched to reviewers and evaluated.
               </p>
             </div>
           </section>
-
         </div>
       </div>
     </div>
-  );
-}
-
-// Simple React loader/spinner component mapping
-function RefreshCw(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-      <path d="M3 3v5h5" />
-      <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-      <path d="M16 16h5v5" />
-    </svg>
   );
 }

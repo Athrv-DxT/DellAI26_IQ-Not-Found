@@ -3,6 +3,7 @@ import numpy as np
 from scipy.optimize import linear_sum_assignment
 from sqlmodel import Session, select
 from backend.models import ProjectSubmission, JudgeProfile, User, AuditLog
+from backend.agents.sybil import generate_text_embedding
 
 def match_projects_to_judges(session: Session) -> List[Tuple[int, int, float, Dict[str, Any]]]:
     """
@@ -31,6 +32,11 @@ def match_projects_to_judges(session: Session) -> List[Tuple[int, int, float, Di
     replicated_judge_profiles = []
     
     for judge in judges:
+        if judge.capability_embedding is None:
+            judge.capability_embedding = generate_text_embedding(judge.bio)
+            session.add(judge)
+            session.commit()
+            session.refresh(judge)
         for slot in range(judge.max_projects):
             replicated_judge_indices.append(judge.id)
             replicated_judge_embeddings.append(np.array(judge.capability_embedding))
@@ -52,6 +58,11 @@ def match_projects_to_judges(session: Session) -> List[Tuple[int, int, float, Di
         
         for j in range(num_cols):
             project = projects[j]
+            if project.embedding is None:
+                project.embedding = generate_text_embedding(project.abstract)
+                session.add(project)
+                session.commit()
+                session.refresh(project)
             proj_emb = np.array(project.embedding)
             
             # 1. Expertise Match (40% weight)

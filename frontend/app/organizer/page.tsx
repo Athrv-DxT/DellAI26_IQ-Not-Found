@@ -237,7 +237,7 @@ export default function OrganizerDashboard() {
   });
 
   return (
-    <div className="min-h-screen relative bg-[#070a13] text-[#f1f5f9] p-6 md:p-10 overflow-x-hidden">
+    <div className="min-h-screen relative p-6 md:p-10 overflow-x-hidden" style={{ background: "var(--bg)", color: "var(--text)" }}>
       {/* Ambient Light blobs */}
       <div className="fixed top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-blue-600/10 blur-[120px] pointer-events-none z-0"></div>
       <div className="fixed bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none z-0"></div>
@@ -246,13 +246,13 @@ export default function OrganizerDashboard() {
       <div className="max-w-7xl mx-auto space-y-8 relative z-10">
         
         {/* Header Bar */}
-        <header className="flex flex-col md:flex-row justify-between md:items-center gap-4 pb-4 border-b border-white/[0.08]">
+        <header className="flex flex-col md:flex-row justify-between md:items-center gap-4 pb-4 border-b" style={{ borderColor: "var(--border)" }}>
           <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
+            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight flex items-center gap-2" style={{ color: "var(--text)" }}>
               <Activity className="w-6 h-6 text-[#38bdf8] animate-pulse" />
               State-Driven Agentic OS Console
             </h1>
-            <p className="text-slate-400 text-xs md:text-sm mt-0.5">
+            <p className="text-xs md:text-sm mt-0.5" style={{ color: "var(--text-muted)" }}>
               Autonomous Hackathon Pipeline controller. Recalculates Z-score calibrations, matches judges, and verifies cryptographic logs.
             </p>
           </div>
@@ -276,7 +276,7 @@ export default function OrganizerDashboard() {
         </header>
         
         {/* Unstop-style Hackathon Hero Card */}
-        <div className="bg-gradient-to-br from-[#101b35] via-[#0e1626] to-[#080d19] rounded-2xl p-6 md:p-8 border border-blue-500/20 text-white relative overflow-hidden shadow-2xl shadow-blue-950/20 animate-modal-open">
+        <div className="rounded-2xl p-6 md:p-8 relative overflow-hidden animate-modal-open" style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)", border: "1.5px solid #334155" }}>
           <div className="absolute -inset-px bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-2xl pointer-events-none"></div>
           
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative z-10">
@@ -289,7 +289,7 @@ export default function OrganizerDashboard() {
                 </span>
                 <span className="bg-white/10 text-slate-300 font-semibold text-[10px] px-2.5 py-1 rounded-md uppercase tracking-wider font-mono border border-white/5">OS Console</span>
               </div>
-              <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-blue-200">
+              <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white">
                 Dell Future Minds AI Hackathon 2026
               </h1>
               <p className="text-slate-300 text-xs md:text-sm max-w-2xl leading-relaxed">
