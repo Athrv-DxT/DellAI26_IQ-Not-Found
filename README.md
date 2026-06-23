@@ -116,4 +116,4 @@ Open **http://localhost:3000** 🎉
 
 ## 👥 Team
 
-**IQ-Not-Found** — Dell Future Minds AI Hackathon 2026
+**IQ-Not-Found** — Dell Future Minds AI Hackathon-2026
